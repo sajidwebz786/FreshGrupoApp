@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import SplashScreen from './src/screens/SplashScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
@@ -14,7 +14,7 @@ import AddressScreen from './src/screens/AddressScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import CustomDrawer from './src/components/CustomDrawer';
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
 // Stack navigator for main app flow
