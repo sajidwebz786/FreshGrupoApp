@@ -1,0 +1,163 @@
+// ...existing code...
+/**
+ * Clean ApiService for FreshGroupoApp
+ * - Set DEFAULT_HOST to your PC LAN IP and port (e.g. https://freshgrupo-server.onrender.com:3001)
+ * - Or set process.env.API_BASE_URL to override (useful for ngrok HTTPS URL)
+ */
+
+//const DEFAULT_HOST = 'http://192.168.1.3:3001'; // Local development
+const DEFAULT_HOST = 'https://freshgrupo-server.onrender.com'; // Production Render server
+const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.API_BASE_URL)
+  ? process.env.API_BASE_URL.replace(/\/+$/, '') // remove trailing slash
+  : `${DEFAULT_HOST.replace(/\/+$/, '')}/api`;
+
+const REQUEST_TIMEOUT = 20000; // 20 seconds
+
+class ApiService {
+  // Internal fetch helper with timeout, JSON/text handling and unified errors
+  async doFetch(path, options = {}) {
+    const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+
+      if (!res.ok) {
+        const message = (data && data.message) || data || `HTTP ${res.status}`;
+        const err = new Error(message);
+        err.status = res.status;
+        err.response = data;
+        throw err;
+      }
+
+      return data;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error('Request timeout - server may not be reachable');
+      }
+      throw err;
+    }
+  }
+
+  // Authentication
+  async register(userData) {
+    console.log('Register URL:', `${API_BASE_URL}/auth/register`);
+    console.log('Register data:', userData);
+    return this.doFetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async login(credentials) {
+    console.log('Login URL:', `${API_BASE_URL}/auth/login`);
+    console.log('Login data:', credentials);
+    return this.doFetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  // Public endpoints
+  async getCategories() {
+    return this.doFetch('/public/categories', { method: 'GET' });
+  }
+
+  async getPacksByCategory(categoryId) {
+    return this.doFetch(`/public/categories/${categoryId}/packs`, { method: 'GET' });
+  }
+
+  async getProductsByCategory(categoryId) {
+    return this.doFetch(`/categories/${categoryId}/products`, { method: 'GET' });
+  }
+
+  async getPackDetails(packId) {
+    // server exposes /api/packs/:id and /api/public/packs; adjust if needed
+    return this.doFetch(`/packs/${packId}`, { method: 'GET' });
+  }
+
+  // Cart (protected)
+  async getCart(userId, token) {
+    return this.doFetch(`/cart/${userId}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async addToCart(cartData, token) {
+    return this.doFetch('/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(cartData),
+    });
+  }
+
+  async updateCart(cartId, quantity, token) {
+    return this.doFetch(`/cart/${cartId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ quantity }),
+    });
+  }
+
+  async removeCartItem(cartId, token) {
+    return this.doFetch(`/cart/${cartId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Orders
+  async createOrder(orderData, token) {
+    return this.doFetch('/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  async getOrders(userId, token) {
+    // If your server uses a different route adjust accordingly
+    return this.doFetch(`/orders/user/${userId}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Payments
+  async createPayment(paymentData, token) {
+    return this.doFetch('/payments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(paymentData),
+    });
+  }
+
+  async getPayments(token) {
+    return this.doFetch('/payments', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Utility: allow runtime override of base URL (useful for testing/ngrok)
+  setBaseUrl(url) {
+    this._customBaseUrl = url.replace(/\/+$/, '');
+  }
+
+  getBaseUrl() {
+    return this._customBaseUrl || API_BASE_URL;
+  }
+}
+
+// Export singleton
+export default new ApiService();
+// ...existing code...
