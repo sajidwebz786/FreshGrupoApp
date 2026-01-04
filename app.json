@@ -3,6 +3,7 @@
     "name": "FreshgrupoApp",
     "slug": "freshgrupo",
     "version": "1.0.0",
+    "projectId": "caaeadfc-5ca0-489d-a6f8-b50bda7f96b9",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
