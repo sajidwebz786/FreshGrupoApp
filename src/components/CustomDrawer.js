@@ -150,6 +150,14 @@ const CustomDrawer = (props) => {
 
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => props.navigation.navigate('OrderHistory')}
+          >
+            <Text style={styles.menuIcon}>📋</Text>
+            <Text style={styles.menuText}>Order History</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => {
               Alert.alert('About', 'Fresh Groupo - Your fresh produce partner');
             }}

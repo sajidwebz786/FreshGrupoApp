@@ -1,20 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const BottomNavigation = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const menuItems = [
     { icon: 'home-outline', text: 'Home', onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Drawer' }] })) },
     { icon: 'list-outline', text: 'Categories', onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Drawer' }] })) },
     { icon: 'cart-outline', text: 'Cart', onPress: () => navigation.navigate('Cart') },
-    { icon: 'person-outline', text: 'Profile', onPress: () => navigation.openDrawer() },
+    { icon: 'document-text-outline', text: 'Orders', onPress: () => navigation.navigate('OrderHistory') },
   ];
 
   return (
-    <View style={styles.bottomMenu}>
+    <View style={[styles.bottomMenu, { bottom: insets.bottom }]}>
       {menuItems.map((item, index) => (
         <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress}>
           <Ionicons name={item.icon} size={20} color="#fff" />
@@ -32,7 +34,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     justifyContent: 'space-around',
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     elevation: 6,

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import SplashScreen from './src/screens/SplashScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
 import PackTypesScreen from './src/screens/PackTypesScreen';
@@ -12,6 +13,7 @@ import CustomPackScreen from './src/screens/CustomPackScreen';
 import CartScreen from './src/screens/CartScreen';
 import AddressScreen from './src/screens/AddressScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
+import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
 import CustomDrawer from './src/components/CustomDrawer';
 
 const Stack = createNativeStackNavigator();
@@ -80,35 +82,44 @@ function DrawerNavigator() {
           title: 'Payment',
         }}
       />
+      <Drawer.Screen
+        name="OrderHistory"
+        component={OrderHistoryScreen}
+        options={{
+          title: 'Order History',
+        }}
+      />
     </Drawer.Navigator>
   );
 }
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Splash">
-        <Stack.Screen
-          name="Splash"
-          component={SplashScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Register"
-          component={RegisterScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Drawer"
-          component={DrawerNavigator}
-          options={{ headerShown: false }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Splash">
+          <Stack.Screen
+            name="Splash"
+            component={SplashScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Register"
+            component={RegisterScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Drawer"
+            component={DrawerNavigator}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
