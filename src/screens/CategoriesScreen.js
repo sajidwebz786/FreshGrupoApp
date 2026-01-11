@@ -59,19 +59,19 @@ const CategoriesScreen = () => {
   };
 
   const getCategoryImage = (name, index) => {
-    // Map category names to appropriate images
+    // Map category names to appropriate images with transparent backgrounds
     const imageMap = {
-      'Fruits Pack': require('../../images/fruits_pack.jpg'),
-      'Vegetables Pack': require('../../images/vegetables_pack.jpg'),
-      'Grocery Pack': require('../../images/grocery_pack.jpg'),
-      'Juices Pack': require('../../images/juices_pack.jpg'),
-      'Millets Pack': require('../../images/millets_pack.jpg'),
-      'Raw Powder Pack': require('../../images/raw_powder_pack.jpg'),
-      'Nutrition Pack': require('../../images/nutrition_pack.jpg'),
-      'Dry Fruit Pack': require('../../images/dry_fruit_pack.jpg'),
-      'Festival Pack': require('../../images/festival_pack.jpg'),
-      'Flower Pack': require('../../images/flower_pack.jpg'),
-      'Sprouts Pack': require('../../images/sprouts_pack.jpg'),
+      'Fruits Pack': require('../../images/fruits-pack-icon-removebg.png'),
+      'Vegetables Pack': require('../../images/vegetables-pack-icon-removebg.png'),
+      'Grocery Pack': require('../../images/grocery-pack-removebg.png'),
+      'Juices Pack': require('../../images/juices-pack-removebg.png'),
+      'Millets Pack': require('../../images/millet-pack-removebg.png'),
+      'Raw Powder Pack': require('../../images/spices-pack-removebg.png'),
+      'Nutrition Pack': require('../../images/nutrition-pack-removebg.png'),
+      'Dry Fruit Pack': require('../../images/dryfruits-pack-removebg.png'),
+      'Festival Pack': require('../../images/festival-pack-removebg.png'),
+      'Flower Pack': require('../../images/flower-pack-removebg.png'),
+      'Sprouts Pack': require('../../images/Beansprouts-removebg.png'),
     };
 
     // Static mapping for fallback images (React Native requires static requires)
@@ -245,10 +245,10 @@ const CategoriesScreen = () => {
             {categories.map((category, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.categoryCard, { backgroundColor: category.color }]}
+                style={styles.categoryCard}
                 onPress={() => handleSelectCategory(category.name)}
               >
-                <Image source={category.image} style={styles.categoryImage} />
+                <Image source={category.image} style={styles.categoryImage} resizeMode="contain" />
                 <Text style={styles.categoryTitle}>{category.name}</Text>
               </TouchableOpacity>
             ))}
@@ -393,12 +393,12 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 5,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 5,
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -408,27 +408,20 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '22%',
-    padding: 8,
     marginVertical: 5,
     marginHorizontal: 3,
-    borderRadius: 8,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    paddingVertical: 5,
   },
   categoryImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginBottom: 4,
+    width: 60,
+    height: 60,
+    marginBottom: 5,
   },
   categoryTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#000',
     textAlign: 'center',
     numberOfLines: 2,
   },

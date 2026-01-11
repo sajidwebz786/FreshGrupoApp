@@ -6,6 +6,7 @@
  */
 
 //const DEFAULT_HOST = 'http://192.168.1.3:3001'; // Local development
+//const DEFAULT_HOST = 'http://localhost:3001'; // Local development
 const DEFAULT_HOST = 'https://freshgrupo-server.onrender.com'; // Production Render server
 const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.API_BASE_URL)
   ? process.env.API_BASE_URL.replace(/\/+$/, '') // remove trailing slash
@@ -66,6 +67,38 @@ class ApiService {
     });
   }
 
+  async updateProfile(userId, profileData) {
+    return this.doFetch(`/auth/user/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  async getAddresses(userId) {
+    return this.doFetch(`/addresses?userId=${userId}`, { method: 'GET' });
+  }
+
+  async createAddress(addressData) {
+    return this.doFetch('/addresses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(addressData),
+    });
+  }
+
+  async updateAddress(addressId, addressData) {
+    return this.doFetch(`/addresses/${addressId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(addressData),
+    });
+  }
+
+  async deleteAddress(addressId) {
+    return this.doFetch(`/addresses/${addressId}`, { method: 'DELETE' });
+  }
+
   // Public endpoints
   async getCategories() {
     return this.doFetch('/public/categories', { method: 'GET' });
@@ -76,7 +109,7 @@ class ApiService {
   }
 
   async getProductsByCategory(categoryId) {
-    return this.doFetch(`/categories/${categoryId}/products`, { method: 'GET' });
+    return this.doFetch(`/public/categories/${categoryId}/products`, { method: 'GET' });
   }
 
   async getPackDetails(packId) {
@@ -111,6 +144,13 @@ class ApiService {
   async removeCartItem(cartId, token) {
     return this.doFetch(`/cart/${cartId}`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getCartCount(token) {
+    return this.doFetch('/cart/count', {
+      method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
   }

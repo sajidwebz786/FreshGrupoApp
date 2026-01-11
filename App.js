@@ -8,12 +8,15 @@ import CategoriesScreen from './src/screens/CategoriesScreen';
 import PackTypesScreen from './src/screens/PackTypesScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import FestivalWishesScreen from './src/screens/FestivalWishesScreen';
 import PackContentsScreen from './src/screens/PackContentsScreen';
 import CustomPackScreen from './src/screens/CustomPackScreen';
 import CartScreen from './src/screens/CartScreen';
 import AddressScreen from './src/screens/AddressScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
+import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 import CustomDrawer from './src/components/CustomDrawer';
 
 const Stack = createNativeStackNavigator();
@@ -89,6 +92,20 @@ function DrawerNavigator() {
           title: 'Order History',
         }}
       />
+      <Drawer.Screen
+        name="OrderDetails"
+        component={OrderDetailsScreen}
+        options={{
+          title: 'Order Details',
+        }}
+      />
+      <Drawer.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'My Profile',
+        }}
+      />
     </Drawer.Navigator>
   );
 }
@@ -111,6 +128,11 @@ export default function App() {
           <Stack.Screen
             name="Register"
             component={RegisterScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="FestivalWishes"
+            component={FestivalWishesScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

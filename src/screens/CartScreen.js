@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomHeader from '../components/CustomHeader';
 import BottomNavigation from '../components/BottomNavigation';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import api from '../services/api';
 
 
 const CartScreen = () => {
@@ -24,6 +25,13 @@ const CartScreen = () => {
   const [loading, setLoading] = useState(true);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [user, setUser] = useState(null);
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [showAddNew, setShowAddNew] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [newAddressType, setNewAddressType] = useState('home');
+  const [newAddressName, setNewAddressName] = useState('Home');
+  const [addingAddress, setAddingAddress] = useState(false);
 
   useEffect(() => {
     initializeUserAndCart();
@@ -33,6 +41,7 @@ const CartScreen = () => {
     useCallback(() => {
       if (user && user.id) {
         fetchCartItems();
+        fetchAddresses();
       } else {
         initializeUserAndCart();
       }
@@ -44,6 +53,7 @@ const CartScreen = () => {
     setTimeout(() => {
       if (user && user.id) {
         fetchCartItems();
+        fetchAddresses();
       }
     }, 100);
   };
@@ -67,29 +77,51 @@ const CartScreen = () => {
   const fetchCartItems = async () => {
     try {
       setLoading(true);
-      const userData = await AsyncStorage.getItem('userData');
-      const currentUser = userData ? JSON.parse(userData) : null;
+      const token = await AsyncStorage.getItem('userToken');
 
-      if (currentUser && currentUser.id) {
-        const response = await fetch(`https://freshgrupo-server.onrender.com/api/cart/${currentUser.id}`);
-        const data = response.ok ? await response.json() : [];
+      if (token && user && user.id) {
+        const data = await api.getCart(user.id, token);
         setCartItems(data);
       } else setCartItems([]);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching cart:', error);
       setCartItems([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchAddresses = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('userData');
+      const currentUser = userData ? JSON.parse(userData) : null;
+
+      if (currentUser && currentUser.id) {
+        const response = await fetch(`https://freshgrupo-server.onrender.com/api/addresses?userId=${currentUser.id}`);
+        const data = response.ok ? await response.json() : [];
+        setAddresses(data);
+        // If no selected and addresses exist, select the default or first
+        if (!selectedAddressId && data.length > 0) {
+          const defaultAddr = data.find(addr => addr.isDefault) || data[0];
+          setSelectedAddressId(defaultAddr.id);
+          setDeliveryAddress(defaultAddr.address);
+        }
+      } else {
+        setAddresses([]);
+      }
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      setAddresses([]);
+    }
+  };
+
   const updateQuantity = async (cartItemId, newQuantity) => {
     if (newQuantity < 1) return;
     try {
-      await fetch(`https://freshgrupo-server.onrender.com/api/cart/${cartItemId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: newQuantity }),
-      });
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      await api.updateCart(cartItemId, newQuantity, token);
       // Update local state without fetching
       setCartItems(prevItems =>
         prevItems.map(item =>
@@ -107,7 +139,10 @@ const CartScreen = () => {
 
   const removeFromCart = async (cartItemId) => {
     try {
-      await fetch(`https://freshgrupo-server.onrender.com/api/cart/${cartItemId}`, { method: 'DELETE' });
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      await api.removeCartItem(cartItemId, token);
       // Update local state without fetching
       setCartItems(prevItems => prevItems.filter(item => item.id !== cartItemId));
     } catch (error) {
@@ -120,9 +155,63 @@ const CartScreen = () => {
   const calculateTotal = () =>
     cartItems.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0).toFixed(2);
 
+  const addNewAddress = async () => {
+    if (!newAddress.trim() || !newAddressName.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setAddingAddress(true);
+    try {
+      const userData = await AsyncStorage.getItem('userData');
+      const currentUser = userData ? JSON.parse(userData) : null;
+
+      if (!currentUser || !currentUser.id) {
+        Alert.alert('Error', 'User not found');
+        return;
+      }
+
+      const response = await fetch('https://freshgrupo-server.onrender.com/api/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          type: newAddressType,
+          name: newAddressName,
+          address: newAddress,
+          isDefault: addresses.length === 0 // Make first address default
+        })
+      });
+
+      if (response.ok) {
+        const newAddr = await response.json();
+        setAddresses(prev => [...prev, newAddr]);
+        setSelectedAddressId(newAddr.id);
+        setDeliveryAddress(newAddr.address);
+        setShowAddNew(false);
+        setNewAddress('');
+        setNewAddressName('Home');
+        setNewAddressType('home');
+        Alert.alert('Success', 'Address added successfully');
+      } else {
+        Alert.alert('Error', 'Failed to add address');
+      }
+    } catch (error) {
+      console.error('Error adding address:', error);
+      Alert.alert('Error', 'Failed to add address');
+    } finally {
+      setAddingAddress(false);
+    }
+  };
+
+  const selectAddress = (address) => {
+    setSelectedAddressId(address.id);
+    setDeliveryAddress(address.address);
+  };
+
   const handleCheckout = () => {
-    if (!deliveryAddress.trim()) {
-      Alert.alert('Error', 'Please enter delivery address');
+    if (!selectedAddressId) {
+      Alert.alert('Error', 'Please select a delivery address');
       return;
     }
 
@@ -162,9 +251,9 @@ const CartScreen = () => {
             <Text style={styles.emptySubtitle}>Add some packs to get started!</Text>
             <TouchableOpacity
               style={styles.browseButton}
-              onPress={() => navigation.navigate('Categories')}
+              onPress={() => navigation.navigate('MainStack')}
             >
-              <Text style={styles.browseButtonText}>Browse Products</Text>
+              <Text style={styles.browseButtonText}>Browse Categories</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -208,22 +297,99 @@ const CartScreen = () => {
             ))}
 
             <View style={styles.addressSection}>
-             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-  <Ionicons name="navigate-outline" size={20} color="#1a8b43" style={{ marginRight: 6 }} />
-  <Text style={styles.sectionTitle}>Delivery Location</Text>
-</View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Ionicons name="navigate-outline" size={20} color="#1a8b43" style={{ marginRight: 6 }} />
+                <Text style={styles.sectionTitle}>Delivery Location</Text>
+              </View>
+              <Text style={styles.instructionText}>Please select from any of the below addresses for delivery or create new address.</Text>
 
-              <TextInput
-                style={styles.addressInput}
-                value={deliveryAddress}
-                onChangeText={setDeliveryAddress}
-                placeholder="Enter your complete delivery address"
-                multiline
-              />
+              {addresses.length === 0 && !showAddNew ? (
+                <Text style={styles.noAddressText}>No addresses saved. Add your first delivery location.</Text>
+              ) : (
+                addresses.map((addr) => (
+                  <TouchableOpacity
+                    key={addr.id}
+                    style={[
+                      styles.addressOption,
+                      selectedAddressId === addr.id && styles.selectedAddress
+                    ]}
+                    onPress={() => selectAddress(addr)}
+                  >
+                    <Text style={styles.addressText}>{addr.address}</Text>
+                    {addr.isDefault && <Text style={styles.defaultBadge}>Default</Text>}
+                  </TouchableOpacity>
+                ))
+              )}
+
+              {showAddNew ? (
+                <View style={styles.addNewContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Address Name (e.g., Home, Office)"
+                    value={newAddressName}
+                    onChangeText={setNewAddressName}
+                  />
+                  <View style={styles.typeSelector}>
+                    <TouchableOpacity
+                      style={[styles.typeButton, newAddressType === 'home' && styles.typeSelected]}
+                      onPress={() => setNewAddressType('home')}
+                    >
+                      <Text style={[styles.typeText, newAddressType === 'home' && styles.selectedTypeText]}>Home</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.typeButton, newAddressType === 'work' && styles.typeSelected]}
+                      onPress={() => setNewAddressType('work')}
+                    >
+                      <Text style={[styles.typeText, newAddressType === 'work' && styles.selectedTypeText]}>Work</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.typeButton, newAddressType === 'other' && styles.typeSelected]}
+                      onPress={() => setNewAddressType('other')}
+                    >
+                      <Text style={[styles.typeText, newAddressType === 'other' && styles.selectedTypeText]}>Other</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={[styles.input, { height: 80 }]}
+                    placeholder="Enter your complete delivery address"
+                    value={newAddress}
+                    onChangeText={setNewAddress}
+                    multiline
+                  />
+                  <View style={styles.addButtons}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => {
+                        setShowAddNew(false);
+                        setNewAddress('');
+                        setNewAddressName('Home');
+                        setNewAddressType('home');
+                      }}
+                    >
+                      <Text style={styles.cancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={addNewAddress}
+                      disabled={addingAddress}
+                    >
+                      <Text style={styles.saveText}>{addingAddress ? 'Saving...' : 'Save Address'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addNewButton}
+                  onPress={() => setShowAddNew(true)}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color="#1a8b43" />
+                  <Text style={styles.addNewText}>Add New Location</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>💰 Order Summary</Text>
+              <Text style={styles.summaryTitle}>💰 Summary</Text>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
                 <Text style={styles.summaryValue}>₹{calculateTotal()}</Text>
@@ -269,6 +435,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
   scrollContainer: { padding: 15, paddingBottom: 100 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginVertical: 10 },
+  instructionText: { fontSize: 14, color: '#666', marginBottom: 10 },
   cartItem: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
@@ -304,15 +471,78 @@ const styles = StyleSheet.create({
   qtyButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   qtyText: { marginHorizontal: 10, fontSize: 16, fontWeight: '600', color: '#333' },
   itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#1a8b43' },
-  addressInput: {
+  addressSection: { marginTop: 10 },
+  noAddressText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 10 },
+  addressOption: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 15,
-    fontSize: 15,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#d9f0df',
   },
-  addressSection: { marginTop: 10 },
+  selectedAddress: {
+    borderColor: '#1a8b43',
+    backgroundColor: '#f0f9f0',
+  },
+  addressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  addressName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  defaultBadge: { fontSize: 12, color: '#1a8b43', backgroundColor: '#e6f7e6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  addressText: { fontSize: 14, color: '#555', marginBottom: 5 },
+  addressType: { fontSize: 12, color: '#1a8b43', textTransform: 'capitalize' },
+  addNewContainer: { backgroundColor: '#ffffff', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#d9f0df' },
+  input: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 10,
+  },
+  typeSelector: { flexDirection: 'row', marginBottom: 10 },
+  typeButton: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d9f0df',
+    marginHorizontal: 2,
+  },
+  typeSelected: { backgroundColor: '#1a8b43', borderColor: '#1a8b43' },
+  typeText: { fontSize: 14, color: '#333' },
+  selectedTypeText: { color: '#fff' },
+  addButtons: { flexDirection: 'row', justifyContent: 'space-between' },
+  cancelButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 10,
+  },
+  cancelText: { fontSize: 14, color: '#666' },
+  saveButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: '#1a8b43',
+  },
+  saveText: { fontSize: 14, color: '#fff', fontWeight: 'bold' },
+  addNewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1a8b43',
+    borderStyle: 'dashed',
+  },
+  addNewText: { fontSize: 14, color: '#1a8b43', marginLeft: 5 },
   summaryCard: {
     backgroundColor: '#ffffff',
     borderRadius: 15,

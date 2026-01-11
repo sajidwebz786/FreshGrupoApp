@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   StatusBar,
   Dimensions,
-  SafeAreaView,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +20,7 @@ const { width } = Dimensions.get('window');
 const PackContentsScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { category, packType, price, packId } = route.params || {};
+  const { category, packType, packId } = route.params || {};
 
   const [packDetails, setPackDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,18 +34,16 @@ const PackContentsScreen = () => {
   const fetchPackDetails = async () => {
     try {
       setLoading(true);
-      if (packId) {
-        const data = await api.getPackDetails(packId);
-        setPackDetails(data);
-        // Calculate grand total
-        if (data?.Products) {
-          const total = data.Products.reduce((sum, item) => {
-            const unitPrice = item.PackProduct?.unitPrice || item.price || 0;
-            const quantity = item.PackProduct?.quantity || 1;
-            return sum + (unitPrice * quantity);
-          }, 0);
-          setGrandTotal(total);
-        }
+      const data = await api.getPackDetails(packId);
+      setPackDetails(data);
+
+      if (data?.Products?.length) {
+        const total = data.Products.reduce((sum, item) => {
+          const price = item.PackProduct?.unitPrice || item.price || 0;
+          const qty = item.PackProduct?.quantity || 1;
+          return sum + price * qty;
+        }, 0);
+        setGrandTotal(total);
       }
     } catch (error) {
       console.error('Error fetching pack details:', error);
@@ -55,112 +52,81 @@ const PackContentsScreen = () => {
     }
   };
 
+  const getProductIcon = (name) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('carrot')) return '🥕';
+    if (lowerName.includes('apple')) return '🍎';
+    if (lowerName.includes('banana')) return '🍌';
+    if (lowerName.includes('orange')) return '🍊';
+    if (lowerName.includes('juice') || lowerName.includes('drink')) return '🥤';
+    if (lowerName.includes('milk')) return '🥛';
+    if (lowerName.includes('bread')) return '🍞';
+    if (lowerName.includes('rice')) return '🍚';
+    if (lowerName.includes('wheat')) return '🌾';
+    if (lowerName.includes('sugar')) return '🧂';
+    if (lowerName.includes('salt')) return '🧂';
+    if (lowerName.includes('oil')) return '🫒';
+    if (lowerName.includes('tomato')) return '🍅';
+    if (lowerName.includes('potato')) return '🥔';
+    if (lowerName.includes('onion')) return '🧅';
+    if (lowerName.includes('garlic')) return '🧄';
+    if (lowerName.includes('ginger')) return '🫚';
+    if (lowerName.includes('spinach')) return '🥬';
+    if (lowerName.includes('lettuce')) return '🥬';
+    if (lowerName.includes('cucumber')) return '🥒';
+    if (lowerName.includes('pepper')) return '🫑';
+    if (lowerName.includes('egg')) return '🥚';
+    if (lowerName.includes('chicken')) return '🍗';
+    if (lowerName.includes('fish')) return '🐟';
+    if (lowerName.includes('cheese')) return '🧀';
+    if (lowerName.includes('butter')) return '🧈';
+    if (lowerName.includes('yogurt')) return '🥛';
+    if (lowerName.includes('honey')) return '🍯';
+    if (lowerName.includes('nuts') || lowerName.includes('almond')) return '🥜';
+    if (lowerName.includes('dates')) return '🌴';
+    if (lowerName.includes('raisin')) return '🍇';
+    if (lowerName.includes('tea')) return '🍵';
+    if (lowerName.includes('coffee')) return '☕';
+    if (lowerName.includes('masala') || lowerName.includes('spice')) return '🌶️';
+    if (lowerName.includes('dal') || lowerName.includes('lentil')) return '🫘';
+    if (lowerName.includes('flour')) return '🌾';
+    if (lowerName.includes('atta')) return '🌾';
+    if (lowerName.includes('maida')) return '🌾';
+    if (lowerName.includes('besan')) return '🌾';
+    if (lowerName.includes('corn')) return '🌽';
+    if (lowerName.includes('peas')) return '🫛';
+    if (lowerName.includes('beans')) return '🫘';
+    if (lowerName.includes('chickpea')) return '🫘';
+    if (lowerName.includes('moong')) return '🫘';
+    if (lowerName.includes('urad')) return '🫘';
+    if (lowerName.includes('toor')) return '🫘';
+    if (lowerName.includes('masoor')) return '🫘';
+    if (lowerName.includes('rajma')) return '🫘';
+    if (lowerName.includes('chana')) return '🫘';
+    // Default icon
+    return '🥦';
+  };
+
   const handleAddToCart = async () => {
     try {
       setAddingToCart(true);
       const userData = await AsyncStorage.getItem('userData');
       if (!userData) {
         alert('Please login first');
-        setAddingToCart(false);
         return;
       }
       const user = JSON.parse(userData);
-      const userId = user.id;
-      if (!userId || !packId) {
-        alert('Missing user or pack information');
-        setAddingToCart(false);
-        return;
-      }
       const token = await AsyncStorage.getItem('userToken');
-      await api.addToCart({ userId, packId, quantity: 1 }, token);
+      await api.addToCart({ userId: user.id, packId, quantity: 1 }, token);
       alert('Pack added to cart successfully!');
-      navigation.navigate('Cart');
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert('Failed to add to cart. Please try again.');
+      navigation.getParent().navigate('Cart');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add to cart');
     } finally {
       setAddingToCart(false);
     }
   };
-
-  const getProductIcon = (name) => {
-    const n = name.toLowerCase();
-    // Vegetables
-    if (n.includes('spinach')) return '🥬';
-    if (n.includes('lettuce')) return '🥬';
-    if (n.includes('kale')) return '🥬';
-    if (n.includes('celery')) return '🥬';
-    if (n.includes('chard')) return '🥬';
-    if (n.includes('collard')) return '🥬';
-    if (n.includes('endive')) return '🥬';
-    if (n.includes('escarole')) return '🥬';
-    if (n.includes('kohlrabi')) return '🥬';
-    if (n.includes('fennel')) return '🥬';
-    if (n.includes('artichoke')) return '🥬';
-    if (n.includes('asparagus')) return '🥬';
-    if (n.includes('brussels sprout')) return '🥬';
-    if (n.includes('tomato')) return '🍅';
-    if (n.includes('potato')) return '🥔';
-    if (n.includes('carrot')) return '🥕';
-    if (n.includes('beet')) return '🥕';
-    if (n.includes('radish')) return '🥕';
-    if (n.includes('turnip')) return '🥕';
-    if (n.includes('parsnip')) return '🥕';
-    if (n.includes('onion')) return '🧅';
-    if (n.includes('leek')) return '🧅';
-    if (n.includes('shallot')) return '🧅';
-    if (n.includes('scallion')) return '🧅';
-    if (n.includes('chive')) return '🧅';
-    if (n.includes('bell pepper')) return '🫑';
-    if (n.includes('poblano')) return '🫑';
-    if (n.includes('broccoli')) return '🥦';
-    if (n.includes('cauliflower')) return '🥬';
-    if (n.includes('cabbage')) return '🥬';
-    if (n.includes('bean')) return '🫘';
-    if (n.includes('pea')) return '🫛';
-    if (n.includes('corn')) return '🌽';
-    if (n.includes('eggplant')) return '🍆';
-    if (n.includes('cucumber')) return '🥒';
-    if (n.includes('zucchini')) return '🥒';
-    if (n.includes('squash')) return '🎃';
-    if (n.includes('pumpkin')) return '🎃';
-    if (n.includes('mushroom')) return '🍄';
-    if (n.includes('garlic')) return '🧄';
-    if (n.includes('ginger')) return '🫚';
-    if (n.includes('chili') || n.includes('chilli')) return '🌶️';
-    if (n.includes('jalapeno')) return '🌶️';
-    if (n.includes('habanero')) return '🌶️';
-    // Fruits
-    if (n.includes('banana')) return '🍌';
-    if (n.includes('apple')) return '🍎';
-    if (n.includes('orange')) return '🍊';
-    if (n.includes('mango')) return '🥭';
-    if (n.includes('grape')) return '🍇';
-    if (n.includes('strawberry')) return '🍓';
-    if (n.includes('pineapple')) return '🍍';
-    if (n.includes('watermelon')) return '🍉';
-    if (n.includes('papaya')) return '🍈';
-    if (n.includes('kiwi')) return '🥝';
-    // Other groceries
-    if (n.includes('rice')) return '🍚';
-    if (n.includes('wheat') || n.includes('flour')) return '🌾';
-    if (n.includes('milk')) return '🥛';
-    if (n.includes('bread')) return '🍞';
-    if (n.includes('egg')) return '🥚';
-    if (n.includes('chicken') || n.includes('meat')) return '🍗';
-    if (n.includes('fish')) return '🐟';
-    if (n.includes('oil') || n.includes('ghee')) return '🫒';
-    if (n.includes('sugar') || n.includes('salt') || n.includes('spice')) return '🧂';
-    return '📦';
-  };
-
-  if (!category || !packType) {
-    return (
-      <View style={styles.centered}>
-        <Text>No pack details available.</Text>
-      </View>
-    );
-  }
 
   if (loading) {
     return (
@@ -173,62 +139,54 @@ const PackContentsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#28a745" barStyle="light-content" translucent={true} />
-
-      {/* Use your standard app header */}
+      <StatusBar backgroundColor="#4CAF50" barStyle="light-content" translucent={true} />
       <View style={styles.headerContainer}>
         <CustomHeader />
       </View>
 
-      {/* Pack Info Card */}
       <View style={styles.packInfo}>
         <Text style={styles.packTitle}>{category} - {packType}</Text>
         <Text style={styles.packPrice}>₹{grandTotal}</Text>
       </View>
 
-      {/* Pack Contents Table */}
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.contentsTitle}>Pack Contents</Text>
 
         {/* Table Header */}
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderText, styles.productColumn]}>Product</Text>
-          <Text style={[styles.tableHeaderText, styles.unitColumn]}>Unit</Text>
-          <Text style={[styles.tableHeaderText, styles.priceColumn]}>Price</Text>
-          <Text style={[styles.tableHeaderText, styles.qtyColumn]}>Qty</Text>
-          <Text style={[styles.tableHeaderText, styles.subtotalColumn]}>Sub Total</Text>
+          <Text style={[styles.headerText, { flex: 0.5 }]}></Text>
+          <Text style={[styles.headerText, { flex: 2 }]}>Product</Text>
+          <Text style={[styles.headerText, { flex: 1 }]}>Unit</Text>
+          <Text style={[styles.headerText, { flex: 1 }]}>Price</Text>
+          <Text style={[styles.headerText, { flex: 1 }]}>Qty</Text>
+          <Text style={[styles.headerText, { flex: 0.5 }]}>Sum</Text>
         </View>
 
-        {/* Table Rows */}
-        <View style={styles.tableContainer}>
-          {(packDetails?.Products || []).map((item, idx) => (
-            <View key={idx} style={styles.tableRow}>
-              <View style={styles.productCell}>
-                <View style={styles.itemIconContainer}>
-                  <Text style={styles.itemIcon}>{getProductIcon(item.name)}</Text>
-                </View>
-                <Text style={styles.productName}>{item.name}</Text>
-              </View>
-              <Text style={[styles.tableCell, styles.unitCell]}>{item.UnitType?.abbreviation || 'PC'}</Text>
-              <Text style={[styles.tableCell, styles.priceCell]}>₹{item.PackProduct?.unitPrice || item.price}</Text>
-              <Text style={[styles.tableCell, styles.qtyCell]}>{item.PackProduct?.quantity || 1}</Text>
-              <Text style={[styles.tableCell, styles.subtotalCell]}>
-                ₹{(item.PackProduct?.unitPrice || item.price || 0) * (item.PackProduct?.quantity || 1)}
-              </Text>
+        {/* Pack Products */}
+        {(packDetails?.Products || []).map((item, index) => {
+          const unitPrice = item.PackProduct?.unitPrice || item.price || 0;
+          const qty = item.PackProduct?.quantity || 1;
+          const sum = unitPrice * qty;
+          return (
+            <View key={index} style={styles.tableRow}>
+              <Text style={{ flex: 0.5, textAlign: 'center', fontSize: 20 }}>{getProductIcon(item.name)}</Text>
+              <Text style={{ flex: 2 }}>{item.name}</Text>
+              <Text style={{ flex: 1, textAlign: 'center' }}>{item.unitType || 'pcs'}</Text>
+              <Text style={{ flex: 1, textAlign: 'right' }}>₹{unitPrice}</Text>
+              <Text style={{ flex: 0.5, textAlign: 'center' }}>{qty}</Text>
+              <Text style={{ flex: 1, textAlign: 'right' }}>₹{sum}</Text>
             </View>
-          ))}
-        </View>
+          );
+        })}
 
-        {/* Grand Total */}
         <View style={styles.grandTotalContainer}>
           <Text style={styles.grandTotalText}>Grand Total: ₹{grandTotal}</Text>
         </View>
       </ScrollView>
 
-      {/* Floating Add to Cart */}
       <View style={styles.floatingButtonContainer}>
         <TouchableOpacity
-          style={[styles.addToCartButton, addingToCart && styles.disabledButton]}
+          style={styles.addToCartButton}
           onPress={handleAddToCart}
           disabled={addingToCart}
         >
@@ -238,7 +196,6 @@ const PackContentsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Navigation */}
       <BottomNavigation />
     </View>
   );
@@ -252,144 +209,65 @@ const styles = StyleSheet.create({
   },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Pack Info Card
   packInfo: {
     backgroundColor: '#fff',
-    marginHorizontal: 10,
-    marginTop: 10,
-    borderRadius: 10,
+    margin: 10,
     padding: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
   },
-  packTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 3, color: '#333' },
+  packTitle: { fontSize: 18, fontWeight: 'bold' },
   packPrice: { fontSize: 20, fontWeight: 'bold', color: '#28a745' },
 
-  // Scroll & contents
-  scrollContainer: { flex: 1, marginHorizontal: 10, marginTop: 8 },
-  contentsTitle: { fontSize: 16, fontWeight: 'bold', marginVertical: 8, textAlign: 'center' },
+  scrollContainer: { marginHorizontal: 10 },
+  scrollContent: { paddingBottom: 100 },
+  contentsTitle: { fontSize: 16, fontWeight: 'bold', marginVertical: 10 },
 
-  // Table styles
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    marginBottom: 5,
+    backgroundColor: '#28a745',
+    padding: 8,
     borderRadius: 5,
   },
-  tableHeaderText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  productColumn: { flex: 2.5 },
-  unitColumn: { flex: 1 },
-  priceColumn: { flex: 1.2 },
-  qtyColumn: { flex: 0.8 },
-  subtotalColumn: { flex: 1.2 },
+  headerText: { color: '#fff', fontWeight: 'bold' },
 
-  tableContainer: { paddingBottom: 120 },
   tableRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
-    paddingVertical: 8,
-    paddingHorizontal: 5,
-    marginBottom: 2,
+    padding: 10,
+    marginTop: 5,
     borderRadius: 5,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 1 },
-    alignItems: 'center',
   },
-  productCell: {
-    flex: 2.5,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  productName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 8,
-  },
-  tableCell: {
-    fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  unitCell: { flex: 1 },
-  priceCell: { flex: 1.2 },
-  qtyCell: { flex: 0.8 },
-  subtotalCell: { flex: 1.2, fontWeight: 'bold', color: '#28a745' },
 
-  // Item card
-  itemCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 6,
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 1 },
-  },
   grandTotalContainer: {
+    marginTop: 15,
+    padding: 12,
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 12,
-    marginTop: 10,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
   },
   grandTotalText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#28a745',
   },
-  itemIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
+
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 90,
+    left: 20,
+    right: 20,
   },
-  itemIcon: { fontSize: 20 },
-
-  itemDetails: { flex: 1 },
-  itemInfo: { fontSize: 12, color: '#333', fontWeight: '500' },
-
-  // Floating Add to Cart
-  floatingButtonContainer: { position: 'absolute', bottom: 100, left: 20, right: 20 },
   addToCartButton: {
     backgroundColor: '#28a745',
-    paddingVertical: 12,
+    padding: 14,
     borderRadius: 20,
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 2 },
   },
-  disabledButton: { backgroundColor: '#ccc' },
-  addToCartText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  addToCartText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 
-
-  // Loading
-  loadingText: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 10 },
+  loadingText: { marginTop: 10, color: '#666' },
 });
 
 export default PackContentsScreen;

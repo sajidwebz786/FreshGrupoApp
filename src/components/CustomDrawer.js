@@ -15,6 +15,7 @@ import {
 } from '@react-navigation/drawer';
 import { DrawerActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
 const CustomDrawer = (props) => {
   const [user, setUser] = useState(null);
@@ -43,24 +44,16 @@ const CustomDrawer = (props) => {
 
   const getCartCount = async () => {
     try {
-      // Get current user data
-      const userData = await AsyncStorage.getItem('userData');
-      const currentUser = userData ? JSON.parse(userData) : null;
+      const token = await AsyncStorage.getItem('userToken');
 
-      if (currentUser && currentUser.id) {
-        console.log('Drawer getting cart count for user:', currentUser.id);
-        const response = await fetch(`https://freshgrupo-server.onrender.com:3001/api/cart/${currentUser.id}`);
-        if (response.ok) {
-          const cartItems = await response.json();
-          const totalCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-          console.log('Drawer cart count updated:', totalCount);
-          setCartCount(totalCount);
-        } else {
-          console.error('Drawer failed to get cart count:', response.status);
-          setCartCount(0);
-        }
+      if (token) {
+        console.log('Drawer getting cart count');
+        const countData = await api.getCartCount(token);
+        const totalCount = countData.count || 0;
+        console.log('Drawer cart count updated:', totalCount);
+        setCartCount(totalCount);
       } else {
-        console.log('Drawer: No user available for cart count');
+        console.log('Drawer: No token available for cart count');
         setCartCount(0);
       }
     } catch (error) {
@@ -133,7 +126,7 @@ const CustomDrawer = (props) => {
         <View style={styles.menuContainer}>
           <TouchableOpacity
             style={[styles.menuItem, props.state.index === 0 && styles.activeMenuItem]}
-            onPress={() => props.navigation.navigate('Categories')}
+            onPress={() => props.navigation.navigate('MainStack')}
           >
             <Text style={styles.menuIcon}>🏠</Text>
             <Text style={styles.menuText}>Home</Text>
@@ -154,6 +147,14 @@ const CustomDrawer = (props) => {
           >
             <Text style={styles.menuIcon}>📋</Text>
             <Text style={styles.menuText}>Order History</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => props.navigation.navigate('Profile')}
+          >
+            <Text style={styles.menuIcon}>👤</Text>
+            <Text style={styles.menuText}>My Profile</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
