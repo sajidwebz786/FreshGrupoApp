@@ -243,7 +243,7 @@ const CartScreen = () => {
         {/* <Text style={styles.headerTitle}>🛒 Your Cart</Text> */}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContainer}>
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <Text style={styles.emptyEmoji}>🛍️</Text>
@@ -404,17 +404,17 @@ const CartScreen = () => {
                 <Text style={styles.totalValue}>₹{calculateTotal()}</Text>
               </View>
             </View>
+
+            {cartItems.length > 0 && (
+              <View style={styles.checkoutContainer}>
+                <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+                  <Text style={styles.checkoutText}>💳 Proceed to Payment</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
-
-      {cartItems.length > 0 && (
-        <View style={styles.checkoutContainer}>
-          <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-            <Text style={styles.checkoutText}>💳 Proceed to Payment</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       <BottomNavigation />
     </View>
@@ -566,12 +566,9 @@ const styles = StyleSheet.create({
   checkoutContainer: {
     backgroundColor: '#fff',
     paddingVertical: 10,
+    marginTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#e6e6e6',
-    position: 'absolute',
-    bottom: 60,
-    left: 0,
-    right: 0,
   },
   checkoutButton: {
     backgroundColor: '#1a8b43',
